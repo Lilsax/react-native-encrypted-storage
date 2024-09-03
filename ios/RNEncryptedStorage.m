@@ -27,7 +27,7 @@ void rejectPromise(NSString *message, NSError *error, RCTPromiseRejectBlock reje
 
 RCT_EXPORT_MODULE();
 
-RCT_EXPORT_METHOD(setItem:(NSString *)key withValue:(NSString *)value resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
+RCT_EXPORT_METHOD(setItem:(NSString *)key withValue:(NSString *)value options:(NSDictionary *)options resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
 {
     NSData* dataFromValue = [value dataUsingEncoding:NSUTF8StringEncoding];
     
@@ -38,11 +38,23 @@ RCT_EXPORT_METHOD(setItem:(NSString *)key withValue:(NSString *)value resolver:(
     }
     
     // Prepares the insert query structure
-    NSDictionary* storeQuery = @{
+    NSMutableDictionary* storeQuery = [@{
         (__bridge id)kSecClass : (__bridge id)kSecClassGenericPassword,
         (__bridge id)kSecAttrAccount : key,
         (__bridge id)kSecValueData : dataFromValue
-    };
+    } mutableCopy];
+
+    // Check if options contain the service and access group
+    NSString *service = options[@"kSecAttrService"];
+    NSString *accessGroup = options[@"kSecAttrAccessGroup"];
+
+    if (service) {
+        storeQuery[(__bridge id)kSecAttrService] = service;
+    }
+    
+    if (accessGroup) {
+        storeQuery[(__bridge id)kSecAttrAccessGroup] = accessGroup;
+    }
     
     // Deletes the existing item prior to inserting the new one
     SecItemDelete((__bridge CFDictionaryRef)storeQuery);

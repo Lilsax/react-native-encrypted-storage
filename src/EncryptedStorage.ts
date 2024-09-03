@@ -1,6 +1,6 @@
 /* eslint-disable no-dupe-class-members */
 
-import { NativeModules } from 'react-native';
+import { NativeModules, Platform } from 'react-native';
 const { RNEncryptedStorage } = NativeModules;
 
 if (!RNEncryptedStorage) {
@@ -9,14 +9,14 @@ if (!RNEncryptedStorage) {
 
 export type StorageErrorCallback = (error?: Error) => void;
 export type StorageValueCallback = (error?: Error, value?: string) => void;
-
+export type OptionsType = Record<'kSecAttrService' | 'kSecAttrAccessGroup', string> | {}
 export default class EncryptedStorage {
   /**
    * Writes data to the disk, using SharedPreferences or KeyChain, depending on the platform.
    * @param {string} key - A string that will be associated to the value for later retrieval.
    * @param {string} value - The data to store.
    */
-  static setItem(key: string, value: string): Promise<void>;
+  static setItem(key: string, value: string, options: OptionsType): Promise<void>;
 
   /**
    * Writes data to the disk, using SharedPreferences or KeyChain, depending on the platform.
@@ -24,12 +24,21 @@ export default class EncryptedStorage {
    * @param {string} value - The data to store.
    * @param {Function} cb - The function to call when the operation completes.
    */
-  static setItem(key: string, value: string, cb: StorageErrorCallback): void;
+  static setItem(key: string, value: string, options: OptionsType, cb: StorageErrorCallback): void;
   static setItem(
     key: string,
     value: string,
+    options: OptionsType = {},
     cb?: StorageErrorCallback
   ): void | Promise<void> {
+    if(Platform.OS === 'ios') {
+      if (cb) {
+        RNEncryptedStorage.setItem(key, value, options).then(cb).catch(cb);
+        return;
+      }
+
+    return RNEncryptedStorage.setItem(key, value, options);
+  } else {
     if (cb) {
       RNEncryptedStorage.setItem(key, value).then(cb).catch(cb);
       return;
@@ -37,6 +46,7 @@ export default class EncryptedStorage {
 
     return RNEncryptedStorage.setItem(key, value);
   }
+}
 
   /**
    * Retrieves data from the disk, using SharedPreferences or KeyChain, depending on the platform and returns it as the specified type.
